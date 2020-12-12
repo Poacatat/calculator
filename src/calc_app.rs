@@ -1,5 +1,6 @@
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 //type Error = Box<dyn std::error::Error>;
+use anyhow::anyhow;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExampleApp {
@@ -59,6 +60,7 @@ impl egui::app::App for ExampleApp {
             // ui.label(format!("Hello '{}', age {}", name, *age - 1));
 
             // ui.add(egui::Slider::u32(length, 0..=200).text("längd cm"));
+
             ui.label("calculator");
             ui.text_edit_singleline(equation);
             ui.label(" ");
@@ -117,9 +119,22 @@ impl egui::app::App for ExampleApp {
                     equation.push_str("^");
                 }
             });
+            ui.horizontal(|ui| {
+                if ui.button("(").clicked {
+                    equation.push_str("(");
+                }
+                if ui.button(")").clicked {
+                    equation.push_str(")");
+                }
+            });
 
             // *show ^= ui.button("enter").clicked;
-            ui.label(calculate(&equation).to_string());
+            if equation.len() != 0 {
+                match calculate(&equation) {
+                    Ok(answer) => ui.label(answer.to_string()),
+                    Err(err) => ui.label(format!("ERROR: {} ", err)),
+                };
+            }
             // if *show {
             //     ui.label(calculate(&equation).to_string());
             // }
@@ -138,7 +153,7 @@ impl egui::app::App for ExampleApp {
     }
 }
 
-fn calculate(equation: &str) -> f64 {
+fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
     //things to add: support for pi, sqrt, sin, cos, tan, a result history,
     //log, ln, e, maybe even i, error handling, graphs, sliding constants
     let text = &equation;
@@ -160,9 +175,9 @@ fn calculate(equation: &str) -> f64 {
             if (&text[i..i + 1] == "-" || &text[i..i + 1] == "+") && bracket_level == 0 {
                 if &text[i..i + 1] == "-" {
                     //dbg!("test", &*text, bracket_level);
-                    return calculate(&text[start..a]) - calculate(&text[a + 1..end]);
+                    return Ok(calculate(&text[start..a])? - calculate(&text[a + 1..end])?);
                 } else {
-                    return calculate(&text[start..a]) + calculate(&text[a + 1..end]);
+                    return Ok(calculate(&text[start..a])? + calculate(&text[a + 1..end])?);
                 }
             }
         }
@@ -177,9 +192,9 @@ fn calculate(equation: &str) -> f64 {
             }
             if (&text[i..i + 1] == "*" || &text[i..i + 1] == "/") && bracket_level == 0 {
                 if &text[i..i + 1] == "*" {
-                    return calculate(&text[start..a]) * calculate(&text[a + 1..end]);
+                    return Ok(calculate(&text[start..a])? * calculate(&text[a + 1..end])?);
                 } else {
-                    return calculate(&text[start..a]) / calculate(&text[a + 1..end]);
+                    return Ok(calculate(&text[start..a])? / calculate(&text[a + 1..end])?);
                 }
             }
         }
@@ -194,12 +209,12 @@ fn calculate(equation: &str) -> f64 {
                 bracket_level -= 1;
             }
             if &text[i..i + 1] == "^" && bracket_level == 0 {
-                return calculate(&text[start..a]).powf(calculate(&text[a + 1..end]));
+                return Ok(calculate(&text[start..a])?.powf(calculate(&text[a + 1..end])?));
             }
         }
         //dbg!(&text[start..start + 1], &text[end - 1..]);
         if &text[start..start + 1] == "(" && &text[end - 1..] == ")" {
-            return calculate(&text[start + 1..end - 1]);
+            return Ok(calculate(&text[start + 1..end - 1])?);
         }
         bracket_level = 0;
         for a in start..end {
@@ -211,13 +226,13 @@ fn calculate(equation: &str) -> f64 {
             }
         }
         if bracket_level == 0 {
-            let d: f64 = equation.parse().unwrap();
-            return d as f64;
+            let d: f64 = equation.parse()?;
+            return Ok(d as f64);
         } else {
-            return 0.0;
+            return Err(anyhow!("Mismatched paranthesis"));
         }
     }
-    return 0.0;
+    return Err(anyhow!("Nothing typed"));
 }
 
 // fn trim_calc(){
