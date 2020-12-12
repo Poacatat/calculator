@@ -1,13 +1,11 @@
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 //type Error = Box<dyn std::error::Error>;
 
-
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExampleApp {
     equation: String,
-   // show: bool,
+    // show: bool,
 }
-
 
 impl Default for ExampleApp {
     fn default() -> Self {
@@ -43,7 +41,6 @@ impl egui::app::App for ExampleApp {
 
             //     *show_label ^= ui.button("flip").clicked
             // });
-            
 
             // if name != "conor" && name != "anton" {
             //     ui.horizontal(|ui| {
@@ -65,13 +62,68 @@ impl egui::app::App for ExampleApp {
             ui.label("calculator");
             ui.text_edit_singleline(equation);
             ui.label(" ");
+            ui.horizontal(|ui| {
+                if ui.button("1").clicked {
+                    equation.push_str("1");
+                }
+                if ui.button("2").clicked {
+                    equation.push_str("2");
+                }
+                if ui.button("3").clicked {
+                    equation.push_str("3");
+                }
+            });
+            ui.horizontal(|ui| {
+                if ui.button("4").clicked {
+                    equation.push_str("4");
+                }
+                if ui.button("5").clicked {
+                    equation.push_str("5");
+                }
+                if ui.button("6").clicked {
+                    equation.push_str("6");
+                }
+            });
+            ui.horizontal(|ui| {
+                if ui.button("7").clicked {
+                    equation.push_str("7");
+                }
+                if ui.button("8").clicked {
+                    equation.push_str("8");
+                }
+                if ui.button("9").clicked {
+                    equation.push_str("9");
+                }
+            });
+            ui.horizontal(|ui| {
+                if ui.button("+").clicked {
+                    equation.push_str("+");
+                }
+                if ui.button("-").clicked {
+                    equation.push_str("-");
+                }
+                if ui.button("/").clicked {
+                    equation.push_str("/");
+                }
+            });
+            ui.horizontal(|ui| {
+                if ui.button("*").clicked {
+                    equation.push_str("*");
+                }
+                if ui.button(".").clicked {
+                    equation.push_str(".");
+                }
+                if ui.button("^").clicked {
+                    equation.push_str("^");
+                }
+            });
 
-           // *show ^= ui.button("enter").clicked;
+            // *show ^= ui.button("enter").clicked;
             ui.label(calculate(&equation).to_string());
             // if *show {
             //     ui.label(calculate(&equation).to_string());
             // }
-            
+
             ui.advance_cursor(16.0);
             if ui.button("Quit").clicked {
                 integration_context.output.quit = true;
@@ -86,89 +138,87 @@ impl egui::app::App for ExampleApp {
     }
 }
 
-fn calculate(equation: &str)->f64{//things to add: support for pi, sqrt, sin, cos, tan, a result history, 
-                                  //log, ln, e, maybe even i, error handling, graphs, sliding constants
+fn calculate(equation: &str) -> f64 {
+    //things to add: support for pi, sqrt, sin, cos, tan, a result history,
+    //log, ln, e, maybe even i, error handling, graphs, sliding constants
     let text = &equation;
     let mut bracket_level;
-    let start=0;
-    let end=text.len();
+    let start = 0;
+    let end = text.len();
 
-    if text.len()!=0 && start <= end{
-        bracket_level =0;
-        for a in (start..end).rev(){
+    if text.len() != 0 && start <= end {
+        bracket_level = 0;
+        for a in (start..end).rev() {
             let i: usize = a;
-            if &text[i..i+1]==")"{
-                bracket_level+=1;
+            if &text[i..i + 1] == ")" {
+                bracket_level += 1;
             }
-            if &text[i..i+1]=="("{
-                bracket_level-=1;
+            if &text[i..i + 1] == "(" {
+                bracket_level -= 1;
             }
             //dbg!(&text[i..i+1], bracket_level);
-            if (&text[i..i+1]== "-"|| &text[i..i+1]== "+") && bracket_level == 0{
-                if &text[i..i+1]== "-"{
+            if (&text[i..i + 1] == "-" || &text[i..i + 1] == "+") && bracket_level == 0 {
+                if &text[i..i + 1] == "-" {
                     //dbg!("test", &*text, bracket_level);
-                    return calculate(&text[start..a])-calculate(&text[a+1..end]);
-                }else{
-                    return calculate(&text[start..a])+calculate(&text[a+1..end]);
+                    return calculate(&text[start..a]) - calculate(&text[a + 1..end]);
+                } else {
+                    return calculate(&text[start..a]) + calculate(&text[a + 1..end]);
                 }
             }
         }
-        bracket_level =0;
-        for a in (start..end).rev(){
-            let i = a as usize;//what if i equals end???????? BUg
-            if &text[i..i+1]==")"{
-                bracket_level+=1;
+        bracket_level = 0;
+        for a in (start..end).rev() {
+            let i = a as usize; //what if i equals end???????? BUg
+            if &text[i..i + 1] == ")" {
+                bracket_level += 1;
             }
-            if &text[i..i+1]=="("{
-                bracket_level-=1;
+            if &text[i..i + 1] == "(" {
+                bracket_level -= 1;
             }
-            if (&text[i..i+1] == "*"|| &text[i..i+1] == "/") && bracket_level == 0{
-                if &text[i..i+1] == "*"{
-                    return calculate(&text[start..a])*calculate(&text[a+1..end]);
-                }else{
-                    return calculate(&text[start..a])/calculate(&text[a+1..end]);
+            if (&text[i..i + 1] == "*" || &text[i..i + 1] == "/") && bracket_level == 0 {
+                if &text[i..i + 1] == "*" {
+                    return calculate(&text[start..a]) * calculate(&text[a + 1..end]);
+                } else {
+                    return calculate(&text[start..a]) / calculate(&text[a + 1..end]);
                 }
             }
         }
-        bracket_level =0;
-        for a in (start..end).rev(){
-            
-            let i:usize = a;
-            
-                if &text[i..i+1]==")"{
-                    bracket_level+=1;
-                }
-                if &text[i..i+1]=="("{
-                    bracket_level-=1;
-                }
-                if &text[i..i+1] == "^" && bracket_level == 0{
-                    return calculate(&text[start..a]).powf(calculate(&text[a+1..end]));
-                }
+        bracket_level = 0;
+        for a in (start..end).rev() {
+            let i: usize = a;
 
-        }
-        dbg!(&text[start..start+1], &text[end-1..]);
-        if &text[start..start+1]== "(" && &text[end-1..]==")"{
-            return calculate(&text[start+1..end-1])
-        }      
-        bracket_level=0;
-        for a in start..end{
-            if &text[a..a+1]==")"{
-                bracket_level+=1;
+            if &text[i..i + 1] == ")" {
+                bracket_level += 1;
             }
-            if &text[a..a+1]=="("{
-                bracket_level-=1;
+            if &text[i..i + 1] == "(" {
+                bracket_level -= 1;
+            }
+            if &text[i..i + 1] == "^" && bracket_level == 0 {
+                return calculate(&text[start..a]).powf(calculate(&text[a + 1..end]));
             }
         }
-        if bracket_level== 0{
-            let d: f64 =equation.parse().unwrap();
+        //dbg!(&text[start..start + 1], &text[end - 1..]);
+        if &text[start..start + 1] == "(" && &text[end - 1..] == ")" {
+            return calculate(&text[start + 1..end - 1]);
+        }
+        bracket_level = 0;
+        for a in start..end {
+            if &text[a..a + 1] == ")" {
+                bracket_level += 1;
+            }
+            if &text[a..a + 1] == "(" {
+                bracket_level -= 1;
+            }
+        }
+        if bracket_level == 0 {
+            let d: f64 = equation.parse().unwrap();
             return d as f64;
-        }else {
-            return 0.0
+        } else {
+            return 0.0;
         }
     }
-    return 0.0
+    return 0.0;
 }
-
 
 // fn trim_calc(){
 
