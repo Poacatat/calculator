@@ -5,14 +5,16 @@ use anyhow::anyhow;
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExampleApp {
     equation: String,
-    // show: bool,
+    rad_deg: String,
+    //show_var: bool,
 }
 
 impl Default for ExampleApp {
     fn default() -> Self {
         Self {
             equation: "".to_owned(),
-            //show: false,
+            rad_deg: "in radians".to_owned(),
+            //show_var: false,
         }
     }
 }
@@ -28,7 +30,8 @@ impl egui::app::App for ExampleApp {
     ) {
         let ExampleApp {
             equation,
-            //show,
+            rad_deg,
+            //show_var,
         } = self;
 
         // Example used in `README.md`.
@@ -63,7 +66,22 @@ impl egui::app::App for ExampleApp {
 
             ui.label("calculator");
             ui.text_edit_singleline(equation);
+            ui.label(trim_calc(equation.to_string()));
             ui.label(" ");
+
+            ui.horizontal(|ui| {
+                if ui.button(format!("{}", rad_deg)).clicked {
+                    if rad_deg == "in radians" {
+                        *rad_deg = String::from("now in degrees");
+                    } else {
+                        *rad_deg = String::from("now in radians");
+                    }
+                }
+            });
+            // *show_label ^= ui.button("make varible").clicked
+            // if *show_var {
+            //     ui.add(egui::Slider::u32(a, 0..=200).text("längd cm"));
+            // }
             ui.horizontal(|ui| {
                 if ui.button("1").clicked {
                     equation.push_str("1");
@@ -74,19 +92,17 @@ impl egui::app::App for ExampleApp {
                 if ui.button("3").clicked {
                     equation.push_str("3");
                 }
-            });
-            ui.horizontal(|ui| {
                 if ui.button("4").clicked {
                     equation.push_str("4");
                 }
                 if ui.button("5").clicked {
                     equation.push_str("5");
                 }
+            });
+            ui.horizontal(|ui| {
                 if ui.button("6").clicked {
                     equation.push_str("6");
                 }
-            });
-            ui.horizontal(|ui| {
                 if ui.button("7").clicked {
                     equation.push_str("7");
                 }
@@ -96,7 +112,11 @@ impl egui::app::App for ExampleApp {
                 if ui.button("9").clicked {
                     equation.push_str("9");
                 }
+                if ui.button("0").clicked {
+                    equation.push_str("0");
+                }
             });
+
             ui.horizontal(|ui| {
                 if ui.button("+").clicked {
                     equation.push_str("+");
@@ -107,8 +127,6 @@ impl egui::app::App for ExampleApp {
                 if ui.button("/").clicked {
                     equation.push_str("/");
                 }
-            });
-            ui.horizontal(|ui| {
                 if ui.button("*").clicked {
                     equation.push_str("*");
                 }
@@ -119,6 +137,7 @@ impl egui::app::App for ExampleApp {
                     equation.push_str("^");
                 }
             });
+
             ui.horizontal(|ui| {
                 if ui.button("(").clicked {
                     equation.push_str("(");
@@ -212,6 +231,41 @@ fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
                 return Ok(calculate(&text[start..a])?.powf(calculate(&text[a + 1..end])?));
             }
         }
+        for a in (start..end).rev() {
+            let i: usize = a;
+
+            if &text[i..i + 1] == ")" {
+                bracket_level += 1;
+            }
+            if &text[i..i + 1] == "(" {
+                bracket_level -= 1;
+            }
+            if (&text[i..i + 1] == "s"
+                || &text[i..i + 1] == "c"
+                || &text[i..i + 1] == "t"
+                || &text[i..i + 1] == "q")
+                && bracket_level == 0
+            {
+                if &text[i..i + 1] == "s" {
+                    return Ok(calculate(&text[i + 1..])?.sin());
+                } else {
+                    if &text[i..i + 1] == "c" {
+                        return Ok(calculate(&text[i + 1..])?.cos());
+                    } else {
+                        if &text[i..i + 1] == "t" {
+                            return Ok(
+                                calculate(&text[i + 1..])?.sin() / calculate(&text[i + 3..])?.cos()
+                            );
+                        } else {
+                            //sqrt
+                            dbg!("test");
+                            return Ok(calculate(&text[i + 1..])?.powf(0.5));
+                        }
+                    }
+                }
+            }
+        }
+
         //dbg!(&text[start..start + 1], &text[end - 1..]);
         if &text[start..start + 1] == "(" && &text[end - 1..] == ")" {
             return Ok(calculate(&text[start + 1..end - 1])?);
@@ -235,6 +289,20 @@ fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
     return Err(anyhow!("Nothing typed"));
 }
 
-// fn trim_calc(){
-
-// }
+fn trim_calc(text_trim: String) -> String {
+    let untrimmed = text_trim.trim().to_lowercase();
+    let mut refined: String = "".to_string();
+    dbg!(untrimmed.clone());
+    for c in untrimmed.chars() {
+        match c {
+            's' => refined.push_str("Sin"),
+            'c' => refined.push_str("Cos"),
+            't' => refined.push_str("Tan"),
+            'q' => refined.push_str("√"),
+            'p' => refined.push_str("π"),
+            _ => refined.push(c),
+        }
+    }
+    dbg!(refined.clone());
+    return refined;
+}
