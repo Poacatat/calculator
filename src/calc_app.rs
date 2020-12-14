@@ -2,11 +2,19 @@
 //type Error = Box<dyn std::error::Error>;
 use anyhow::anyhow;
 
+pub struct Variable {
+    name:char,
+    value:f64,
+}
+
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExampleApp {
     equation: String,
     rad_deg: String,
-    //show_var: bool,
+    num_var: i32,
+    //variables: Vec<f64>,
+    // var_name: Vec<String>,
+    variables: Vec<Variable>,
 }
 
 impl Default for ExampleApp {
@@ -14,7 +22,10 @@ impl Default for ExampleApp {
         Self {
             equation: "".to_owned(),
             rad_deg: "in radians".to_owned(),
-            //show_var: false,
+            num_var: 0,
+            //variables: [1.0].to_vec(),
+            //var_name: ["a".to_string(), "1".to_string()].to_vec(),
+            variables: vec![],
         }
     }
 }
@@ -31,7 +42,9 @@ impl egui::app::App for ExampleApp {
         let ExampleApp {
             equation,
             rad_deg,
-            //show_var,
+            num_var,
+            variables,
+            //var_name
         } = self;
 
         // Example used in `README.md`.
@@ -78,10 +91,17 @@ impl egui::app::App for ExampleApp {
                     }
                 }
             });
-            // *show_label ^= ui.button("make varible").clicked
-            // if *show_var {
-            //     ui.add(egui::Slider::u32(a, 0..=200).text("längd cm"));
-            // }
+            if ui.button("+ varible").clicked {
+                *num_var +=1;
+            }
+            for i in 0..*num_var {
+
+                ui.horizontal(|ui| {
+                    ui.add(egui::Slider::f64((var_name[((2*i)+1) as usize].parse().unwrap()) as &mut f64 ,0.0..=200.0));
+                    ui.text_edit_singleline(&mut var_name[(2*i) as usize]);
+                    ui.label(var_name[(2*i+1) as usize].to_string());
+                }); 
+            }
             ui.horizontal(|ui| {
                 if ui.button("1").clicked {
                     equation.push_str("1");
@@ -292,7 +312,6 @@ fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
 fn trim_calc(text_trim: String) -> String {
     let untrimmed = text_trim.trim().to_lowercase();
     let mut refined: String = "".to_string();
-    dbg!(untrimmed.clone());
     for c in untrimmed.chars() {
         match c {
             's' => refined.push_str("Sin"),
@@ -303,6 +322,8 @@ fn trim_calc(text_trim: String) -> String {
             _ => refined.push(c),
         }
     }
-    dbg!(refined.clone());
     return refined;
 }
+
+
+// fn grow_var();
