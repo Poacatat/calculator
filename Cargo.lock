@@ -374,9 +374,9 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
 name = "egui"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5d7b23e58859056225a42395357f7791ea4ab8fc8af726a5670dcf674e1f1a0"
+checksum = "6dc0f371e5ca908f529a3f7fe77b42bacfaacf68469a9e7307c2298d7c2efb3a"
 dependencies = [
  "ahash",
  "parking_lot",
@@ -387,9 +387,9 @@ dependencies = [
 
 [[package]]
 name = "egui_glium"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b432392d47ffe2239bf23d49f542b0041d316596dc549cb5fd44defc0e969b24"
+checksum = "2e3b6d8bf3978dc6dd821aefec1ac9a84a2915ee19f1c64699de22aee9512d3d"
 dependencies = [
  "chrono",
  "clipboard",

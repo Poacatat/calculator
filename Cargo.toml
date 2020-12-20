@@ -9,6 +9,6 @@ edition = "2018"
 
 [dependencies]
 anyhow="1"
-egui = "0.4"
-egui_glium = "0.4"
+egui = "0.5"
+egui_glium = "0.5"
 serde="1"

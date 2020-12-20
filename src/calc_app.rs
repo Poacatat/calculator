@@ -1,20 +1,25 @@
+//use std::fmt::format;
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 //type Error = Box<dyn std::error::Error>;
 use anyhow::anyhow;
 
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct Variable {
-    name:char,
-    value:f64,
+    name: String,
+    value: f64,
+    speed: f64,
+    max_value: f64,
+    min_value: f64,
+    play: bool,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExampleApp {
     equation: String,
     rad_deg: String,
-    num_var: i32,
-    //variables: Vec<f64>,
-    // var_name: Vec<String>,
-    variables: Vec<Variable>,
+    var_list: Vec<Variable>,
+    //ans:f64
 }
 
 impl Default for ExampleApp {
@@ -22,10 +27,8 @@ impl Default for ExampleApp {
         Self {
             equation: "".to_owned(),
             rad_deg: "in radians".to_owned(),
-            num_var: 0,
-            //variables: [1.0].to_vec(),
-            //var_name: ["a".to_string(), "1".to_string()].to_vec(),
-            variables: vec![],
+            var_list: vec![],
+            //ans:0.0,
         }
     }
 }
@@ -42,12 +45,12 @@ impl egui::app::App for ExampleApp {
         let ExampleApp {
             equation,
             rad_deg,
-            num_var,
-            variables,
-            //var_name
+            var_list,
+            //ans,
         } = self;
 
-        // Example used in `README.md`.
+        // Example used in `README.md`
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("My Calculator");
 
@@ -92,16 +95,44 @@ impl egui::app::App for ExampleApp {
                 }
             });
             if ui.button("+ varible").clicked {
-                *num_var +=1;
-            }
-            for i in 0..*num_var {
+                let var_names = vec!['b', 'c', 'd', 'f', 'h', 'j', 'k', 'l', 'm', 'n', 'o', 'p'];
+                let new_var = Variable {
+                    name: var_names[var_list.len()].to_string(),
+                    value: 0.0,
+                    speed: 0.0,
+                    min_value: 0.0,
+                    max_value: 0.0,
+                    play: true,
+                };
+                var_list.push(new_var);
 
-                ui.horizontal(|ui| {
-                    ui.add(egui::Slider::f64((var_name[((2*i)+1) as usize].parse().unwrap()) as &mut f64 ,0.0..=200.0));
-                    ui.text_edit_singleline(&mut var_name[(2*i) as usize]);
-                    ui.label(var_name[(2*i+1) as usize].to_string());
-                }); 
+                // *var_list = add_var(*variables);
             }
+
+            for v in var_list.iter_mut() {
+                ui.horizontal(|ui| {
+                    ui.add(egui::Slider::f64(&mut v.value, v.min_value..=v.max_value));
+                    //ui.text_edit_singleline(&mut v.name);
+                    ui.label(&v.value.to_string());
+                });
+                ui.collapsing("settings", |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("speed");
+                        ui.add(egui::DragValue::f64(&mut v.speed));
+                        v.play ^= ui.button("▶").clicked
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("min");
+                        ui.add(egui::DragValue::f64(&mut v.min_value));
+                        ui.label("max");
+                        ui.add(egui::DragValue::f64(&mut v.max_value));
+                    })
+                });
+                if *&v.play {
+                    v.value += v.speed;
+                }
+            }
+
             ui.horizontal(|ui| {
                 if ui.button("1").clicked {
                     equation.push_str("1");
@@ -136,7 +167,6 @@ impl egui::app::App for ExampleApp {
                     equation.push_str("0");
                 }
             });
-
             ui.horizontal(|ui| {
                 if ui.button("+").clicked {
                     equation.push_str("+");
@@ -157,7 +187,6 @@ impl egui::app::App for ExampleApp {
                     equation.push_str("^");
                 }
             });
-
             ui.horizontal(|ui| {
                 if ui.button("(").clicked {
                     equation.push_str("(");
@@ -169,7 +198,7 @@ impl egui::app::App for ExampleApp {
 
             // *show ^= ui.button("enter").clicked;
             if equation.len() != 0 {
-                match calculate(&equation) {
+                match calculate(&equation, var_list) {
                     Ok(answer) => ui.label(answer.to_string()),
                     Err(err) => ui.label(format!("ERROR: {} ", err)),
                 };
@@ -179,6 +208,9 @@ impl egui::app::App for ExampleApp {
             // }
 
             ui.advance_cursor(16.0);
+
+            ui.separator();
+
             if ui.button("Quit").clicked {
                 integration_context.output.quit = true;
             }
@@ -192,7 +224,7 @@ impl egui::app::App for ExampleApp {
     }
 }
 
-fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
+fn calculate(equation: &str, variable: &Vec<Variable>) -> Result<f64, anyhow::Error> {
     //things to add: support for pi, sqrt, sin, cos, tan, a result history,
     //log, ln, e, maybe even i, error handling, graphs, sliding constants
     let text = &equation;
@@ -214,9 +246,11 @@ fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
             if (&text[i..i + 1] == "-" || &text[i..i + 1] == "+") && bracket_level == 0 {
                 if &text[i..i + 1] == "-" {
                     //dbg!("test", &*text, bracket_level);
-                    return Ok(calculate(&text[start..a])? - calculate(&text[a + 1..end])?);
+                    return Ok(calculate(&text[start..a], variable)?
+                        - calculate(&text[a + 1..end], variable)?);
                 } else {
-                    return Ok(calculate(&text[start..a])? + calculate(&text[a + 1..end])?);
+                    return Ok(calculate(&text[start..a], variable)?
+                        + calculate(&text[a + 1..end], variable)?);
                 }
             }
         }
@@ -231,9 +265,11 @@ fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
             }
             if (&text[i..i + 1] == "*" || &text[i..i + 1] == "/") && bracket_level == 0 {
                 if &text[i..i + 1] == "*" {
-                    return Ok(calculate(&text[start..a])? * calculate(&text[a + 1..end])?);
+                    return Ok(calculate(&text[start..a], variable)?
+                        * calculate(&text[a + 1..end], variable)?);
                 } else {
-                    return Ok(calculate(&text[start..a])? / calculate(&text[a + 1..end])?);
+                    return Ok(calculate(&text[start..a], variable)?
+                        / calculate(&text[a + 1..end], variable)?);
                 }
             }
         }
@@ -248,7 +284,8 @@ fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
                 bracket_level -= 1;
             }
             if &text[i..i + 1] == "^" && bracket_level == 0 {
-                return Ok(calculate(&text[start..a])?.powf(calculate(&text[a + 1..end])?));
+                return Ok(calculate(&text[start..a], variable)?
+                    .powf(calculate(&text[a + 1..end], variable)?));
             }
         }
         for a in (start..end).rev() {
@@ -267,19 +304,18 @@ fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
                 && bracket_level == 0
             {
                 if &text[i..i + 1] == "s" {
-                    return Ok(calculate(&text[i + 1..])?.sin());
+                    return Ok(calculate(&text[i + 1..], variable)?.sin());
                 } else {
                     if &text[i..i + 1] == "c" {
-                        return Ok(calculate(&text[i + 1..])?.cos());
+                        return Ok(calculate(&text[i + 1..], variable)?.cos());
                     } else {
                         if &text[i..i + 1] == "t" {
-                            return Ok(
-                                calculate(&text[i + 1..])?.sin() / calculate(&text[i + 3..])?.cos()
-                            );
+                            return Ok(calculate(&text[i + 1..], variable)?.sin()
+                                / calculate(&text[i + 3..], variable)?.cos());
                         } else {
                             //sqrt
                             dbg!("test");
-                            return Ok(calculate(&text[i + 1..])?.powf(0.5));
+                            return Ok(calculate(&text[i + 1..], variable)?.powf(0.5));
                         }
                     }
                 }
@@ -288,7 +324,7 @@ fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
 
         //dbg!(&text[start..start + 1], &text[end - 1..]);
         if &text[start..start + 1] == "(" && &text[end - 1..] == ")" {
-            return Ok(calculate(&text[start + 1..end - 1])?);
+            return Ok(calculate(&text[start + 1..end - 1], variable)?);
         }
         bracket_level = 0;
         for a in start..end {
@@ -300,6 +336,13 @@ fn calculate(equation: &str) -> Result<f64, anyhow::Error> {
             }
         }
         if bracket_level == 0 {
+            for i in start..end {
+                for k in variable {
+                    if &text[i..i + 1] == k.name {
+                        return Ok(k.value);
+                    }
+                }
+            }
             let d: f64 = equation.parse()?;
             return Ok(d as f64);
         } else {
@@ -325,5 +368,13 @@ fn trim_calc(text_trim: String) -> String {
     return refined;
 }
 
-
-// fn grow_var();
+// fn add_var(var: Vec<Variable>)->Vec<Variable>{
+//     let mut mut_var= var;
+//     let var_names = vec!['a','b','c','d','e','f'];
+//     let new_var = Variable {
+//         name: var_names[mut_var.len()],
+//         value: 0,
+//     };
+//     mut_var.push(new_var);
+//     return mut_var
+// }
