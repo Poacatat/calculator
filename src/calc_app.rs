@@ -12,6 +12,7 @@ pub struct Variable {
     max_value: f64,
     min_value: f64,
     play: bool,
+    direction: f64,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -101,8 +102,9 @@ impl egui::app::App for ExampleApp {
                     value: 0.0,
                     speed: 0.0,
                     min_value: 0.0,
-                    max_value: 0.0,
+                    max_value: 200.0,
                     play: true,
+                    direction: 1.0,
                 };
                 var_list.push(new_var);
 
@@ -112,14 +114,14 @@ impl egui::app::App for ExampleApp {
             for v in var_list.iter_mut() {
                 ui.horizontal(|ui| {
                     ui.add(egui::Slider::f64(&mut v.value, v.min_value..=v.max_value));
-                    //ui.text_edit_singleline(&mut v.name);
+                    ui.text_edit_singleline(&mut v.name);
                     ui.label(&v.value.to_string());
                 });
                 ui.collapsing("settings", |ui| {
                     ui.horizontal(|ui| {
                         ui.label("speed");
                         ui.add(egui::DragValue::f64(&mut v.speed));
-                        v.play ^= ui.button("▶").clicked
+                        v.play ^= ui.button("▶").clicked;
                     });
                     ui.horizontal(|ui| {
                         ui.label("min");
@@ -128,8 +130,21 @@ impl egui::app::App for ExampleApp {
                         ui.add(egui::DragValue::f64(&mut v.max_value));
                     })
                 });
-                if *&v.play {
-                    v.value += v.speed;
+                if *&v.play
+                    && v.value + v.speed * v.direction <= v.max_value
+                    && v.value + v.speed * v.direction >= v.min_value
+                {
+                    v.value += v.speed * v.direction;
+                }
+                if v.value + v.speed * v.direction > v.max_value
+                    || v.value + v.speed * v.direction < v.min_value
+                {
+                    if v.direction == 1.0 {
+                        v.value = v.max_value
+                    } else {
+                        v.value = v.min_value
+                    }
+                    v.direction *= -1.0
                 }
             }
 

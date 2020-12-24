@@ -6,12 +6,12 @@
 mod calc_app;
 use calc_app::ExampleApp;
 
-
 fn main() {
-    let title = "My Egui Window";
+    let title = "Oscars Calculator";
 
     // Persist app state to file:
-    let storage = egui_glium::storage::FileStorage::from_path(".egui_example_glium.json".to_string());
+    let storage =
+        egui_glium::storage::FileStorage::from_path(".egui_example_glium.json".to_string());
 
     // Alternative: store nowhere
     // let storage = egui::app::DummyStorage::default();
